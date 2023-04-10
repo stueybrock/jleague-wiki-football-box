@@ -1,0 +1,4 @@
+/vendor
+/composer
+.ddev/*
+.DS_Store
