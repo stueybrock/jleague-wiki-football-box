@@ -2,15 +2,17 @@
 
 // Crawler
 use Symfony\Component\Panther\Client;
+use Symfony\Component\DomCrawler\Crawler;
 
 require __DIR__ . '/vendor/autoload.php';
 
 $client  = Client::createChromeClient();
-$crawler = $client->request( 'GET', 'https://www.jleague.co/match/j1/2023041506/' );
+$url     = 'https://www.jleague.co/match/j1/2023041506';
+$crawler = $client->request( 'GET', $url );
 $crawler = $client->waitFor( '.player-events__body' );
 
 // Helper functions
-function get_string_between( $string, $start, $end ) {
+function get_string_between( $string, $start, $end ): string {
 	$string = ' ' . $string;
 	$ini    = strpos( $string, $start );
 	if ( $ini == 0 ) {
@@ -22,7 +24,7 @@ function get_string_between( $string, $start, $end ) {
 	return substr( $string, $ini, $len );
 }
 
-function clean( $string ) {
+function clean( $string ): array|string|null {
 	$string = str_replace( ' ', '-', $string ); // Replaces all spaces with hyphens.
 
 	return preg_replace( '/[^A-Za-z0-9\-]/', '', $string ); // Removes special chars.
@@ -47,6 +49,15 @@ $team_two = $crawler->filter( '.summary-teams__team--away' )->text();
 // Score
 $score = clean( $crawler->filter( '.summary-teams__result' )->text() );
 
+// Meta
+$meta = $crawler->filter( '.match-extra-info-item__value' )->each( function ( Crawler $node, $i ) {
+	return $node->text();
+} );
+
+$stadium    = $meta[0];
+$attendance = $meta[2];
+$referee    = ucwords( strtolower( $meta[3] ) );
+
 $football_box = array(
 	'round'      => $round,
 	'date'       => $date,
@@ -54,13 +65,13 @@ $football_box = array(
 	'team1'      => $team_one,
 	'score'      => $score,
 	'team2'      => $team_two,
-	'report'     => '',
+	'report'     => $url,
 	'goals1'     => '',
 	'goals2'     => '',
-	'stadium'    => '',
+	'stadium'    => $stadium,
 	'location'   => '',
-	'attendance' => '',
-	'referee'    => '',
+	'attendance' => $attendance,
+	'referee'    => $referee,
 	'result'     => '',
 );
 
