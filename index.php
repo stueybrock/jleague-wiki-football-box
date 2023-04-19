@@ -3,6 +3,7 @@
 // Crawler
 use Symfony\Component\Panther\Client;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\CssSelector\CssSelectorConverter;
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -48,6 +49,40 @@ $team_two = $crawler->filter( '.summary-teams__team--away' )->text();
 
 // Score
 $score = clean( $crawler->filter( '.summary-teams__result' )->text() );
+
+// Match events
+function get_match_event_arr( $converter, $parentCrawler, $event ) {
+	if ( ! empty( $event->count() ) ) {
+		$minute = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__time' ) );
+		$minute = rtrim( $minute->text(), '\'' );
+
+		return array(
+			'player_name' => $event->text(),
+			'minute'      => $minute,
+		);
+	}
+}
+
+$home_goals = array();
+$away_goals = array();
+$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) {
+
+	$converter = new CssSelectorConverter();
+
+	$home_goals_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--home .timeline-detail--goal' ) );
+	$away_goals_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--away .timeline-detail--goal' ) );
+
+	if ( ! empty( $home_goals_event->count() ) ) {
+		$home_goals[] = get_match_event_arr( $converter, $parentCrawler, $home_goals_event );
+//		var_dump( $home_goals );
+	}
+
+
+	if ( ! empty( $away_goals_event->count() ) ) {
+//		$away_goals[] = get_match_event_arr( $converter, $parentCrawler, $away_goals_event );
+//		var_dump( $away_goals );
+	}
+} );
 
 // Meta
 $meta = $crawler->filter( '.match-extra-info-item__value' )->each( function ( Crawler $node, $i ) {
