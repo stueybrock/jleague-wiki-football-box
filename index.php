@@ -64,25 +64,65 @@ function get_match_event_arr( $converter, $parentCrawler, $event ) {
 }
 
 $home_goals = array();
-$away_goals = array();
-$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) {
+$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) use ( &$home_goals ) {
 
 	$converter = new CssSelectorConverter();
 
 	$home_goals_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--home .timeline-detail--goal' ) );
-	$away_goals_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--away .timeline-detail--goal' ) );
 
 	if ( ! empty( $home_goals_event->count() ) ) {
 		$home_goals[] = get_match_event_arr( $converter, $parentCrawler, $home_goals_event );
-//		var_dump( $home_goals );
 	}
 
+	return $home_goals;
+} );
+
+$away_goals = array();
+$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) use ( &$away_goals ) {
+
+	$converter = new CssSelectorConverter();
+
+	$away_goals_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--away .timeline-detail--goal' ) );
 
 	if ( ! empty( $away_goals_event->count() ) ) {
-//		$away_goals[] = get_match_event_arr( $converter, $parentCrawler, $away_goals_event );
-//		var_dump( $away_goals );
+		$away_goals[] = get_match_event_arr( $converter, $parentCrawler, $away_goals_event );
 	}
+
+	return $away_goals;
 } );
+
+$home_cards = array();
+$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) use ( &$home_cards ) {
+
+	$converter = new CssSelectorConverter();
+
+	$home_cards_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--home .timeline-detail--warning' ) );
+
+	if ( ! empty( $home_cards_event->count() ) ) {
+		$home_cards[] = get_match_event_arr( $converter, $parentCrawler, $home_cards_event );
+	}
+
+	return $home_cards;
+} );
+
+$away_cards = array();
+$crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) use ( &$away_cards ) {
+
+	$converter = new CssSelectorConverter();
+
+	$away_cards_event = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__team--away .timeline-detail--warning' ) );
+
+	if ( ! empty( $away_cards_event->count() ) ) {
+		$away_cards[] = get_match_event_arr( $converter, $parentCrawler, $away_cards_event );
+	}
+
+	return $away_cards;
+} );
+
+var_dump( $home_goals );
+var_dump( $away_goals );
+var_dump( $home_cards );
+var_dump( $away_cards );
 
 // Meta
 $meta = $crawler->filter( '.match-extra-info-item__value' )->each( function ( Crawler $node, $i ) {
