@@ -1,5 +1,10 @@
 <?php
 
+// Helper functions
+require 'functions-strings.php';
+require 'functions-locations.php';
+require 'functions-wikipedia.php';
+
 // Crawler
 use Symfony\Component\Panther\Client;
 use Symfony\Component\DomCrawler\Crawler;
@@ -11,25 +16,6 @@ $client  = Client::createChromeClient();
 $url     = 'https://www.jleague.co/match/j1/2023041506';
 $crawler = $client->request( 'GET', $url );
 $crawler = $client->waitFor( '.player-events__body' );
-
-// Helper functions
-function get_string_between( $string, $start, $end ): string {
-	$string = ' ' . $string;
-	$ini    = strpos( $string, $start );
-	if ( $ini == 0 ) {
-		return '';
-	}
-	$ini += strlen( $start );
-	$len = strpos( $string, $end, $ini ) - $ini;
-
-	return substr( $string, $ini, $len );
-}
-
-function clean( $string ): array|string|null {
-	$string = str_replace( ' ', '-', $string ); // Replaces all spaces with hyphens.
-
-	return preg_replace( '/[^A-Za-z0-9\-]/', '', $string ); // Removes special chars.
-}
 
 // Round
 $round_text = $crawler->filter( '.competition-title' )->text();
@@ -53,12 +39,15 @@ $score = clean( $crawler->filter( '.summary-teams__result' )->text() );
 // Match events
 function get_match_event_arr( $converter, $parentCrawler, $event ) {
 	if ( ! empty( $event->count() ) ) {
-		$minute = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__time' ) );
-		$minute = rtrim( $minute->text(), '\'' );
+		$minute      = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__time' ) );
+		$minute      = rtrim( $minute->text(), '\'' );
+		$event_class = $parentCrawler->filterXPath( $converter->toXPath( '.match-event-icon' ) )->attr( 'class' );
+		$event_type  = preg_replace( '/^match-event-icon match-event-icon--/', '', $event_class );
 
 		return array(
 			'player_name' => $event->text(),
 			'minute'      => $minute,
+			'event_type'  => $event_type,
 		);
 	}
 }
@@ -119,19 +108,29 @@ $crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $
 	return $away_cards;
 } );
 
-var_dump( $home_goals );
-var_dump( $away_goals );
-var_dump( $home_cards );
-var_dump( $away_cards );
+// Merge goals and cards.
+$home_events = array_merge( $home_goals, $home_cards );
+$away_events = array_merge( $away_goals, $away_cards );
+
+// Find minutes of each event.
+$home_minutes = array_column( $home_events, 'minute' );
+$away_minutes = array_column( $away_events, 'minute' );
+
+// Sort the match events in chronological order.
+array_multisort( $home_minutes, SORT_ASC, $home_events );
+array_multisort( $away_minutes, SORT_ASC, $away_events );
 
 // Meta
 $meta = $crawler->filter( '.match-extra-info-item__value' )->each( function ( Crawler $node, $i ) {
 	return $node->text();
 } );
 
-$stadium    = $meta[0];
+$stadium    = ucwords( strtolower( $meta[0] ) );
 $attendance = $meta[2];
 $referee    = ucwords( strtolower( $meta[3] ) );
+
+// Location
+$location = location_from_stadium_name( $meta[0] );
 
 $football_box = array(
 	'round'      => $round,
@@ -141,10 +140,10 @@ $football_box = array(
 	'score'      => $score,
 	'team2'      => $team_two,
 	'report'     => $url,
-	'goals1'     => '',
-	'goals2'     => '',
+	'goals1'     => $home_events,
+	'goals2'     => $away_events,
 	'stadium'    => $stadium,
-	'location'   => '',
+	'location'   => $location,
 	'attendance' => $attendance,
 	'referee'    => $referee,
 	'result'     => '',
