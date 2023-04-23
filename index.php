@@ -39,15 +39,22 @@ $score = clean( $crawler->filter( '.summary-teams__result' )->text() );
 // Match events
 function get_match_event_arr( $converter, $parentCrawler, $event ) {
 	if ( ! empty( $event->count() ) ) {
-		$minute      = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__time' ) );
-		$minute      = rtrim( $minute->text(), '\'' );
+		// Player name
+		list( $first_name, $last_name ) = explode( " ", $event->text() );
+
+		// Minute
+		$minute = $parentCrawler->filterXPath( $converter->toXPath( '.timeline-item__time' ) );
+		$minute = rtrim( $minute->text(), '\'' );
+
+		// Type
 		$event_class = $parentCrawler->filterXPath( $converter->toXPath( '.match-event-icon' ) )->attr( 'class' );
 		$event_type  = preg_replace( '/^match-event-icon match-event-icon--/', '', $event_class );
 
 		return array(
-			'player_name' => $event->text(),
-			'minute'      => $minute,
-			'event_type'  => $event_type,
+			'player_first_name' => ucwords( strtolower( $first_name ) ),
+			'player_last_name'  => ucwords( strtolower( $last_name ) ),
+			'minute'            => $minute,
+			'event_type'        => $event_type,
 		);
 	}
 }
