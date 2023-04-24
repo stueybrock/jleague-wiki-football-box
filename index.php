@@ -13,7 +13,7 @@ use Symfony\Component\CssSelector\CssSelectorConverter;
 require __DIR__ . '/vendor/autoload.php';
 
 $client  = Client::createChromeClient();
-$url     = 'https://www.jleague.co/match/j1/2023041506';
+$url     = 'https://www.jleague.co/match/j1/2023041502';
 $crawler = $client->request( 'GET', $url );
 $crawler = $client->waitFor( '.player-events__body' );
 
@@ -73,9 +73,13 @@ function build_event_string( $event ): string {
 		default => '{{goal|' . $event['minute'] . '}}',
 	};
 
-	$player_link = '[[' . $first_name . ' ' . $last_name . '|' . $last_name . ']]';
+	if ( empty( $first_name ) && empty( $last_name ) ) {
+		$player_link = '';
+	} else {
+		$player_link = '[[' . $first_name . ' ' . $last_name . '|' . $last_name . ']] ';
+	}
 
-	return '*' . $player_link . ' ' . $event_output;
+	return '*' . $player_link . $event_output;
 }
 
 $home_goals = array();
@@ -155,7 +159,6 @@ $away_events_string = '';
 foreach ( $away_events as $away_event ) {
 	$away_events_string .= build_event_string( $away_event ) . "\n";
 }
-
 
 
 // Meta
