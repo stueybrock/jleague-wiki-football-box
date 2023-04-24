@@ -59,6 +59,25 @@ function get_match_event_arr( $converter, $parentCrawler, $event ) {
 	}
 }
 
+function build_event_string( $event ): string {
+	$first_name = $event['player_first_name'];
+	$last_name  = $event['player_last_name'];
+	$event_type = $event['event_type'];
+
+	$event_output = match ( $event_type ) {
+		'yellow' => '{{yel|' . $event['minute'] . '}}',
+		'penalty-goal' => '{{goal|' . $event['minute'] . '|pen.}}',
+		'own-goal' => '{{goal|' . $event['minute'] . '|o.g.}}',
+		'red' => '{{sent off|0|' . $event['minute'] . '}}',
+		'yellow-red' => '{{sent off|2|' . $event['minute'] . '}}',
+		default => '{{goal|' . $event['minute'] . '}}',
+	};
+
+	$player_link = '[[' . $first_name . ' ' . $last_name . '|' . $last_name . ']]';
+
+	return '*' . $player_link . ' ' . $event_output;
+}
+
 $home_goals = array();
 $crawler->filter( '.timeline-item' )->each( function ( Crawler $parentCrawler, $i ) use ( &$home_goals ) {
 
@@ -127,6 +146,18 @@ $away_minutes = array_column( $away_events, 'minute' );
 array_multisort( $home_minutes, SORT_ASC, $home_events );
 array_multisort( $away_minutes, SORT_ASC, $away_events );
 
+$home_events_string = '';
+foreach ( $home_events as $home_event ) {
+	$home_events_string .= build_event_string( $home_event ) . "\n";
+}
+
+$away_events_string = '';
+foreach ( $away_events as $away_event ) {
+	$away_events_string .= build_event_string( $away_event ) . "\n";
+}
+
+
+
 // Meta
 $meta = $crawler->filter( '.match-extra-info-item__value' )->each( function ( Crawler $node, $i ) {
 	return $node->text();
@@ -142,19 +173,44 @@ $location = location_from_stadium_name( $meta[0] );
 $football_box = array(
 	'round'      => $round,
 	'date'       => $date,
-	'time'       => $time,
-	'team1'      => $team_one,
+	'time'       => $time . " [[Japan Standard Time|JST]]",
+	'team1'      => string_to_wiki_link( $team_one ),
 	'score'      => $score,
-	'team2'      => $team_two,
+	'team2'      => string_to_wiki_link( $team_two ),
 	'report'     => $url,
-	'goals1'     => $home_events,
-	'goals2'     => $away_events,
-	'stadium'    => $stadium,
+	'goals1'     => $home_events_string,
+	'goals2'     => $away_events_string,
+	'stadium'    => string_to_wiki_link( $stadium ),
 	'location'   => $location,
 	'attendance' => $attendance,
 	'referee'    => $referee,
 	'result'     => '',
 );
 
-var_dump( $football_box );
+//var_dump( $football_box );
 
+//echo "{{football box collapsible \n";
+//foreach ( $football_box as $key => $item ) {
+//	echo "|" . $key . "=" . $item . "\n";
+//}
+//echo "}}";
+?>
+
+{{football box collapsible
+|round      = <?= $football_box['round'] . "\n" ?>
+|date       = <?= $football_box['date'] . "\n" ?>
+|time       = <?= $football_box['time'] . "\n" ?>
+|team1      = <?= $football_box['team1'] . "\n" ?>
+|score      = <?= $football_box['score'] . "\n" ?>
+|report     = <?= $football_box['report'] . "\n" ?>
+|team2      = <?= $football_box['team2'] . "\n" ?>
+|goals1     =
+<?= $football_box['goals1'] ?>
+|goals2     =
+<?= $football_box['goals2'] ?>
+|stadium    = <?= $football_box['stadium'] . "\n" ?>
+|location   = <?= $football_box['location'] . "\n" ?>
+|attendance = <?= $football_box['attendance'] . "\n" ?>
+|referee    = <?= $football_box['referee'] . "\n" ?>
+|result     =
+}}
