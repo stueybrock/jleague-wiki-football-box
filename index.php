@@ -13,13 +13,14 @@ use Symfony\Component\CssSelector\CssSelectorConverter;
 require __DIR__ . '/vendor/autoload.php';
 
 $client  = Client::createChromeClient();
-$url     = 'https://www.jleague.co/match/j1/2023041502';
+$url     = 'https://www.jleague.co/match/j1/2021072102';
 $crawler = $client->request( 'GET', $url );
 $crawler = $client->waitFor( '.player-events__body' );
 
 // Round
 $round_text = $crawler->filter( '.competition-title' )->text();
-$round      = substr( $round_text, - 1 );
+$round      = (int) filter_var( $round_text, FILTER_SANITIZE_NUMBER_INT );
+$round      = ltrim( $round, - 1 );
 
 // Date
 $date_time = $crawler->filter( '.match-date-time' )->text();
@@ -34,7 +35,8 @@ $team_one = $crawler->filter( '.summary-teams__team--home' )->text();
 $team_two = $crawler->filter( '.summary-teams__team--away' )->text();
 
 // Score
-$score = clean( $crawler->filter( '.summary-teams__result' )->text() );
+$score_text = clean( $crawler->filter( '.summary-teams__result' )->text() );
+$score      = str_replace( '-', '–', $score_text );
 
 // Match events
 function get_match_event_arr( $converter, $parentCrawler, $event ) {
